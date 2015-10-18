@@ -5,6 +5,7 @@
   "main": "./dist/grep.js",
   "scripts": {
     "test": "./node_modules/istanbul/lib/cli.js cover _mocha -- -R spec && xo",
+    "nyc": "nyc -x '**/**/markterm.js' mocha",
     "mocha": "mocha"
   },
   "repository": {
@@ -28,6 +29,7 @@
   },
   "homepage": "https://github.com/vorpaljs/vorpal-grep#readme",
   "devDependencies": {
+    "coveralls": "^2.11.4",
     "gulp": "^3.9.0",
     "gulp-babel": "^5.2.1",
     "gulp-changed": "^1.3.0",
