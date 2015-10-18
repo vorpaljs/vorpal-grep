@@ -116,7 +116,7 @@ function fetch(files, stdin, options, cb) {
           logs.push('grep: ' + files[i] + ': Is a directory');
           files[i] = undefined;
         } else if (options.include !== undefined && matches(parts.base, options.include) || options.include === undefined) {
-          files[i] = [String(fs.readFileSync(files[i], 'utf8')).split('\n'), files[i]];
+          files[i] = [String(fs.readFileSync(path.normalize(files[i]), 'utf8')).split('\n'), files[i]];
         } else {
           files[i] = undefined;
         }
