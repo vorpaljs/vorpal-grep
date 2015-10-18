@@ -121,6 +121,7 @@ function fetch(files, stdin, options, cb) {
           files[i] = undefined;
         }
       } catch (e) {
+        console.log(e);
         logs.push('grep ' + files[i] + ': No such file or directory');
         files[i] = undefined;
       }
