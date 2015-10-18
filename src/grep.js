@@ -1,11 +1,7 @@
 'use strict';
 
-/**
- * Module dependencies.
- */
-
-const util = require('util');
 const fs = require('fs');
+const path = require('path');
 const glob = require('glob');
 
 let chalk;
@@ -26,12 +22,12 @@ module.exports = function (vorpal) {
     .option('-h, --no-filename', 'suppress the file name prefix on output')
     .option('-q, --quiet', 'suppress all normal output')
     .option('--silent', 'suppress all normal output')
+    .option('--include <file_pattern>', 'search only files that match file_pattern')
     .hidden()
     .action(function (args, cb) {
       const self = this;
-
+      const wholeWords = (args.options.wordregexp) ? '\\b' : '';
       let regopts = 'g';
-      let wholeWords = (args.options.wordregexp) ? '\\b' : '';
       if (args.options.ignorecase) {
         regopts += 'i';
       }
@@ -43,8 +39,7 @@ module.exports = function (vorpal) {
         return;
       }
 
-      fetch(args.files, args.stdin, function(err, stdin, logs) {
-
+      fetch(args.files, args.stdin, args.options, function (err, stdin, logs) {
         if (err) {
           self.log(chalk.red(err));
           cb(err);
@@ -64,11 +59,11 @@ module.exports = function (vorpal) {
           let bytes = 0;
           for (let j = 0; j < stdin[i][0].length; ++j) {
             const line = String(stdin[i][0][j]);
-            let match = line.match(pattern);
+            const match = line.match(pattern);
+            const offset = bytes;
             let result;
-            let offset = bytes;
             bytes += line.length + 1;
-            if (match && args.options.invertmatch === undefined) { 
+            if (match && args.options.invertmatch === undefined) {
               result = line.replace(pattern, chalk.red('$1'));
             } else if (match === null && args.options.invertmatch === true) {
               result = line;
@@ -93,15 +88,13 @@ module.exports = function (vorpal) {
             }
           }
         }
-
         cb();
       });
-  });
-
+    });
 };
 
 function uniqFiles(stdin) {
-  const mem = {}
+  const mem = {};
   const result = [];
   let count = 0;
   for (let i = 0; i < stdin.length; ++i) {
@@ -114,24 +107,33 @@ function uniqFiles(stdin) {
   return result;
 }
 
-function fetch(files, stdin, cb) {
+function fetch(files, stdin, options, cb) {
   files = files || [];
   stdin = (stdin !== undefined) ? [stdin] : [];
   const logs = [];
-  expand(files, function(err, f) {
+  expand(files, function (err, f) {
     if (err) {
       cb(err);
       return;
     }
-    
+
     if (!(f.length === 0 && files.length > 0)) {
       files = f;
-    } 
+    }
 
     for (let i = 0; i < files.length; ++i) {
       try {
-        files[i] = [String(fs.readFileSync(files[i], 'utf8')).split('\n'), files[i]];
-      } catch(e) {
+        const stat = fs.statSync(files[i]);
+        const parts = path.parse(files[i]);
+        if (stat.isDirectory()) {
+          logs.push(`grep: ${files[i]}: Is a directory`);
+          files[i] = undefined;
+        } else if ((options.include !== undefined && matches(parts.base, options.include)) || options.include === undefined) {
+          files[i] = [String(fs.readFileSync(files[i], 'utf8')).split('\n'), files[i]];
+        } else {
+          files[i] = undefined;
+        }
+      } catch (e) {
         logs.push(`grep ${files[i]}: No such file or directory`);
         files[i] = undefined;
       }
@@ -144,7 +146,7 @@ function fetch(files, stdin, cb) {
     const agg = (files.length < 1) ? stdin : files;
     const final = [];
 
-    for (var i = 0; i < agg.length; ++i) {
+    for (let i = 0; i < agg.length; ++i) {
       if (agg[i] !== undefined) {
         final.push(agg[i]);
       }
@@ -159,7 +161,7 @@ function expand(list, cb) {
   let done = 0;
   let files = [];
   let back = false;
-  let handler = function (err) {
+  const handler = function (err) {
     done++;
     if (done >= total && !back) {
       back = true;
@@ -168,17 +170,23 @@ function expand(list, cb) {
       back = true;
       cb(err, []);
     }
-  }
+  };
 
   if (list.length < 1) {
     cb(undefined, []);
     return;
   }
 
-  for (let i = 0; i < total; ++i) {
-    glob(list[i], {}, function (err, res){
-      files = files.concat(res);
-      handler(err);
-    });
+  function prehandler(err, res) {
+    files = files.concat(res);
+    handler(err);
   }
+
+  for (let i = 0; i < total; ++i) {
+    glob(list[i], {}, prehandler);
+  }
+}
+
+function matches(str, rule) {
+  return new RegExp(`^${rule.replace('*', '.*')}$`).test(str);
 }

@@ -1,11 +1,7 @@
 'use strict';
 
-/**
- * Module dependencies.
- */
-
-var util = require('util');
 var fs = require('fs');
+var path = require('path');
 var glob = require('glob');
 
 var chalk = undefined;
@@ -13,11 +9,10 @@ var chalk = undefined;
 module.exports = function (vorpal) {
   chalk = vorpal.chalk;
 
-  vorpal.command('grep <pattern> [files...]', 'Grep (POSIX) implementation.').option('-i, --ignore-case', 'ignore case distinctions').option('-w, --word-regexp', 'force pattern to match only whole words').option('-s, --no-messages', 'suppress error messages').option('-v, --invert-match', 'select non-matching lines').option('-m, --max-count <num>', 'stop after num matches').option('-b, --byte-offset', 'print the byte offset with output lines').option('-n, --line-number', 'print the line number with output lines').option('-H, --with-filename', 'print the file name for each match').option('-h, --no-filename', 'suppress the file name prefix on output').option('-q, --quiet', 'suppress all normal output').option('--silent', 'suppress all normal output').hidden().action(function (args, cb) {
+  vorpal.command('grep <pattern> [files...]', 'Grep (POSIX) implementation.').option('-i, --ignore-case', 'ignore case distinctions').option('-w, --word-regexp', 'force pattern to match only whole words').option('-s, --no-messages', 'suppress error messages').option('-v, --invert-match', 'select non-matching lines').option('-m, --max-count <num>', 'stop after num matches').option('-b, --byte-offset', 'print the byte offset with output lines').option('-n, --line-number', 'print the line number with output lines').option('-H, --with-filename', 'print the file name for each match').option('-h, --no-filename', 'suppress the file name prefix on output').option('-q, --quiet', 'suppress all normal output').option('--silent', 'suppress all normal output').option('--include <file_pattern>', 'search only files that match file_pattern').hidden().action(function (args, cb) {
     var self = this;
-
-    var regopts = 'g';
     var wholeWords = args.options.wordregexp ? '\\b' : '';
+    var regopts = 'g';
     if (args.options.ignorecase) {
       regopts += 'i';
     }
@@ -29,8 +24,7 @@ module.exports = function (vorpal) {
       return;
     }
 
-    fetch(args.files, args.stdin, function (err, stdin, logs) {
-
+    fetch(args.files, args.stdin, args.options, function (err, stdin, logs) {
       if (err) {
         self.log(chalk.red(err));
         cb(err);
@@ -51,8 +45,8 @@ module.exports = function (vorpal) {
         for (var j = 0; j < stdin[i][0].length; ++j) {
           var line = String(stdin[i][0][j]);
           var match = line.match(pattern);
-          var result = undefined;
           var offset = bytes;
+          var result = undefined;
           bytes += line.length + 1;
           if (match && args.options.invertmatch === undefined) {
             result = line.replace(pattern, chalk.red('$1'));
@@ -79,7 +73,6 @@ module.exports = function (vorpal) {
           }
         }
       }
-
       cb();
     });
   });
@@ -99,7 +92,7 @@ function uniqFiles(stdin) {
   return result;
 }
 
-function fetch(files, stdin, cb) {
+function fetch(files, stdin, options, cb) {
   files = files || [];
   stdin = stdin !== undefined ? [stdin] : [];
   var logs = [];
@@ -113,17 +106,26 @@ function fetch(files, stdin, cb) {
       files = f;
     }
 
-    for (var _i = 0; _i < files.length; ++_i) {
+    for (var i = 0; i < files.length; ++i) {
       try {
-        files[_i] = [String(fs.readFileSync(files[_i], 'utf8')).split('\n'), files[_i]];
+        var stat = fs.statSync(files[i]);
+        var parts = path.parse(files[i]);
+        if (stat.isDirectory()) {
+          logs.push('grep: ' + files[i] + ': Is a directory');
+          files[i] = undefined;
+        } else if (options.include !== undefined && matches(parts.base, options.include) || options.include === undefined) {
+          files[i] = [String(fs.readFileSync(files[i], 'utf8')).split('\n'), files[i]];
+        } else {
+          files[i] = undefined;
+        }
       } catch (e) {
-        logs.push('grep ' + files[_i] + ': No such file or directory');
-        files[_i] = undefined;
+        logs.push('grep ' + files[i] + ': No such file or directory');
+        files[i] = undefined;
       }
     }
 
-    for (var _i2 = 0; _i2 < stdin.length; ++_i2) {
-      stdin[_i2] = String(stdin[_i2]).split('\n');
+    for (var i = 0; i < stdin.length; ++i) {
+      stdin[i] = String(stdin[i]).split('\n');
     }
 
     var agg = files.length < 1 ? stdin : files;
@@ -160,10 +162,16 @@ function expand(list, cb) {
     return;
   }
 
-  for (var i = 0; i < total; ++i) {
-    glob(list[i], {}, function (err, res) {
-      files = files.concat(res);
-      handler(err);
-    });
+  function prehandler(err, res) {
+    files = files.concat(res);
+    handler(err);
   }
+
+  for (var i = 0; i < total; ++i) {
+    glob(list[i], {}, prehandler);
+  }
+}
+
+function matches(str, rule) {
+  return new RegExp('^' + rule.replace('*', '.*') + '$').test(str);
 }

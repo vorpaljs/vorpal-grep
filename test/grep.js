@@ -260,4 +260,17 @@ describe('vorpal-grep', function () {
     });
   });
 
+  it('should only match patterns with the --include flag', function (done) {
+    vorpal.exec('grep 14 ./test/fixtures/*.* --include \'*.md\' ', function (err, data) {
+      var out = strip(stdout());
+      out.should.containEql('d:14');
+      out.should.not.containEql('a:14');
+      out.should.not.containEql('b:14');
+      out.should.not.containEql('c:14');
+      done();
+    });
+  });
+
+
+
 });
