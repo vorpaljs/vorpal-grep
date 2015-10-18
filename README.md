@@ -8,7 +8,7 @@ A 100% Javascript (ES2015) implementation of the [grep](https://en.wikipedia.org
 
 A [Vorpal.js](https://github.com/dthree/vorpal) extension, `vorpal-grep` lets you grep content in a Vorpal environment!
 
-Letter-perfect POSIX implementation, lots of tests!
+Letter-perfect POSIX implementation, 28 tests, 100% coverage.
 
 ### Installation
 
