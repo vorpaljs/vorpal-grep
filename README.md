@@ -1,11 +1,14 @@
 # Vorpal - Grep
 
 [![Build Status](https://travis-ci.org/vorpaljs/vorpal-grep.svg)](https://travis-ci.org/vorpaljs/vorpal-grep)
+[![Coverage Status](https://coveralls.io/repos/vorpaljs/vorpal-grep/badge.svg?branch=master)](https://coveralls.io/r/vorpaljs/vorpal-grep?branch=master)
 [![XO: Linted](https://img.shields.io/badge/xo-linted-blue.svg)](https://github.com/sindresorhus/xo)
 
 A 100% Javascript (ES2015) implementation of the [grep](https://en.wikipedia.org/wiki/Grep) command.
 
-A [Vorpal.js](https://github.com/dthree/vorpal) extension, `vorpal-grep` lets you grep content in a Vorpal environment.
+A [Vorpal.js](https://github.com/dthree/vorpal) extension, `vorpal-grep` lets you grep content in a Vorpal environment!
+
+Letter-perfect POSIX implementation, lots of tests!
 
 ### Installation
 
@@ -30,38 +33,14 @@ vorpal
 
 ```bash
 $ node hacker-news.js
-node~$ hacker-news | grep
-...
-... content
-...
-:
+node~$ hacker-news | grep "Vorpal"
+4. Vorpal: a framework for interactive CLIs in Node.js (github.com)
+node~$
 ```
-
-### Examples
-
-- [Hackers News](https://github.com/vorpaljs/vorpal-grep/blob/master/examples/hacker-news.js)
-- [Rock Paper Scissors](https://github.com/vorpaljs/vorpal-grep/blob/master/examples/rock-paper-scissors.js)
-
-### Implementation
-
-`vorpal-grep` aims to be a letter-perfect implementation of the `grep` command you know (and love?). All features implmented so far will appear in its help menu:
-
-```bash
-vorpal~$ grep --help
-```
-##### Implemented:
-
-- Primary functionality, prompt, screen writing, etc.
-- All navigation commands and shortcuts.
-- Grep-style help menu.
 
 ### Contributing
 
-Feel free to contribute! Additional work is needed on:
-
-- Search options
-- File-reading options
-- Option flags
+Feel free to contribute! So far 12 options are supported, help get them all supported!
 
 ### License
 

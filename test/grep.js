@@ -21,6 +21,19 @@ vorpal.pipe(function (str) {
 });
 
 describe('vorpal-grep', function () {
+
+  before(function() {
+    vorpal.command('foo').action(function (args, cb) {
+      this.log('bar1!\nbar2!\nbar3!');
+      cb();
+    });
+
+    vorpal.command('reverse').action(function (args, cb) {
+      this.log(String(args.stdin[0]).split('').reverse().join(''));
+      cb();
+    });
+  });
+
   it('should exist and be a function', function () {
     should.exist(grep);
     grep.should.be.type('function');
@@ -57,6 +70,13 @@ describe('vorpal-grep', function () {
   it('should color matches with red', function (done) {
     vorpal.exec('grep cats ./test/fixtures/a.txt', function (err, data) {
       stdout().should.containEql(`\u001b[31mcats\u001b[39m`);
+      done();
+    });
+  });
+
+  it('should shit on directories', function (done) {
+    vorpal.exec('grep cats ./test/fixtures', function (err, data) {
+      stdout().should.containEql('Is a directory');
       done();
     });
   });
@@ -271,6 +291,15 @@ describe('vorpal-grep', function () {
     });
   });
 
+  describe('piping', function () {
+    it('should work with piped output.', function (done) {
+      vorpal.exec('foo | grep bar2!', function (err, data) {
+        var out = strip(stdout());
+        out.should.equal('bar2!');
+        done();
+      });
+    });
+  })
 
 
 });

@@ -25,6 +25,8 @@ module.exports = function (vorpal) {
     }
 
     fetch(args.files, args.stdin, args.options, function (err, stdin, logs) {
+
+      /* istanbul ignore next */
       if (err) {
         self.log(chalk.red(err));
         cb(err);
@@ -60,7 +62,7 @@ module.exports = function (vorpal) {
             result = '' + chalk.green(j + 1) + chalk.cyan(':') + result;
           }
           if ((uniques.length > 1 || args.options.withfilename) && result !== undefined && args.options.filename === undefined) {
-            result = '' + chalk.magenta(stdin[i][1]) + chalk.cyan(':') + result;
+            result = '' + chalk.magenta(stdin[i][1] || 'stdin') + chalk.cyan(':') + result;
           }
           if (result !== undefined) {
             maxCounter++;
@@ -97,6 +99,7 @@ function fetch(files, stdin, options, cb) {
   stdin = stdin !== undefined ? [stdin] : [];
   var logs = [];
   expand(files, function (err, f) {
+    /* istanbul ignore next */
     if (err) {
       cb(err);
       return;
@@ -128,7 +131,7 @@ function fetch(files, stdin, options, cb) {
       stdin[i] = String(stdin[i]).split('\n');
     }
 
-    var agg = files.length < 1 ? stdin : files;
+    var agg = files.length < 1 ? [stdin] : files;
     var final = [];
 
     for (var i = 0; i < agg.length; ++i) {
@@ -151,10 +154,11 @@ function expand(list, cb) {
     if (done >= total && !back) {
       back = true;
       cb(undefined, files);
+      /* istanbul ignore next */
     } else if (err && !back) {
-      back = true;
-      cb(err, []);
-    }
+        back = true;
+        cb(err, []);
+      }
   };
 
   if (list.length < 1) {
