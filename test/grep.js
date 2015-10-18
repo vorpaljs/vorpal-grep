@@ -69,7 +69,7 @@ describe('vorpal-grep', function () {
 
   it('should color matches with red', function (done) {
     vorpal.exec('grep cats ./test/fixtures/a.txt', function (err, data) {
-      stdout().should.containEql(`\u001b[31mcats\u001b[39m`);
+      stdout().should.containEql('\u001b[31mcats\u001b[39m');
       done();
     });
   });

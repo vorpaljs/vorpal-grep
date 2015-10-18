@@ -25,7 +25,6 @@ module.exports = function (vorpal) {
     }
 
     fetch(args.files, args.stdin, args.options, function (err, stdin, logs) {
-
       /* istanbul ignore next */
       if (err) {
         self.log(chalk.red(err));
