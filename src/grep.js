@@ -15,14 +15,14 @@ module.exports = function (vorpal) {
     .option('-w, --word-regexp', 'force pattern to match only whole words')
     .option('-s, --no-messages', 'suppress error messages')
     .option('-v, --invert-match', 'select non-matching lines')
-    .option('-m, --max-count <num>', 'stop after num matches')
+    .option('-m, --max-count [num]', 'stop after num matches')
     .option('-b, --byte-offset', 'print the byte offset with output lines')
     .option('-n, --line-number', 'print the line number with output lines')
     .option('-H, --with-filename', 'print the file name for each match')
     .option('-h, --no-filename', 'suppress the file name prefix on output')
     .option('-q, --quiet', 'suppress all normal output')
     .option('--silent', 'suppress all normal output')
-    .option('--include <file_pattern>', 'search only files that match file_pattern')
+    .option('--include [file_pattern]', 'search only files that match file_pattern')
     .hidden()
     .action(function (args, cb) {
       const self = this;
