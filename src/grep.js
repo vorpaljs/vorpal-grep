@@ -6,9 +6,85 @@ const glob = require('glob');
 
 let chalk;
 
-module.exports = function (vorpal) {
-  chalk = vorpal.chalk;
+const grep = {
 
+  exec(args, options, cb) {
+    const self = this;
+    const wholeWords = options.wordregexp ? '\\b' : '';
+    let regopts = 'g';
+    if (options.ignorecase) {
+      regopts += 'i';
+    }
+    const pattern = new RegExp(`(${wholeWords}${args.pattern}${wholeWords})`, regopts);
+
+    if (options.maxcount && isNaN(options.maxcount)) {
+      self.log('grep: invalid max count');
+      cb();
+      return;
+    }
+
+    fetch(args.files, args.stdin, options, function (err, stdin, logs) {
+      /* istanbul ignore next */
+      if (err) {
+        self.log(chalk.red(err));
+        cb(err);
+        return;
+      }
+
+      if (options.messages === undefined) {
+        for (let i = 0; i < logs.length; ++i) {
+          self.log(logs[i]);
+        }
+      }
+
+      const uniques = uniqFiles(stdin);
+
+      for (let i = 0; i < stdin.length; ++i) {
+        let maxCounter = 0;
+        let bytes = 0;
+        for (let j = 0; j < stdin[i][0].length; ++j) {
+          const line = String(stdin[i][0][j]);
+          const match = line.match(pattern);
+          const offset = bytes;
+          let result;
+          bytes += line.length + 1;
+          if (match && options.invertmatch === undefined) {
+            result = line.replace(pattern, chalk.red('$1'));
+          } else if (match === null && options.invertmatch === true) {
+            result = line;
+          }
+          if (options.byteoffset && result !== undefined) {
+            result = `${chalk.green(offset)}${chalk.cyan(':')}${result}`;
+          }
+          if (options.linenumber && result !== undefined) {
+            result = `${chalk.green(j + 1)}${chalk.cyan(':')}${result}`;
+          }
+          if ((uniques.length > 1 || options.withfilename) && result !== undefined && options.filename === undefined) {
+            result = `${chalk.magenta(stdin[i][1] || 'stdin')}${chalk.cyan(':') + result}`;
+          }
+          if (result !== undefined) {
+            maxCounter++;
+            if (options.maxcount && maxCounter > options.maxcount) {
+              continue;
+            }
+            if (options.silent === undefined && options.quiet === undefined) {
+              self.log(result);
+            }
+          }
+        }
+      }
+      cb();
+    });
+  }
+};
+
+module.exports = function (vorpal) {
+  if (vorpal === undefined) {
+    return grep;
+  }
+  vorpal.api = vorpal.api || {};
+  vorpal.api.grep = grep;
+  chalk = vorpal.chalk;
   vorpal
     .command('grep <pattern> [files...]', 'Grep (POSIX) implementation.')
     .option('-i, --ignore-case', 'ignore case distinctions')
@@ -25,72 +101,7 @@ module.exports = function (vorpal) {
     .option('--include [file_pattern]', 'search only files that match file_pattern')
     .hidden()
     .action(function (args, cb) {
-      const self = this;
-      const wholeWords = (args.options.wordregexp) ? '\\b' : '';
-      let regopts = 'g';
-      if (args.options.ignorecase) {
-        regopts += 'i';
-      }
-      const pattern = new RegExp(`(${wholeWords}${args.pattern}${wholeWords})`, regopts);
-
-      if (args.options.maxcount && isNaN(args.options.maxcount)) {
-        self.log('grep: invalid max count');
-        cb();
-        return;
-      }
-
-      fetch(args.files, args.stdin, args.options, function (err, stdin, logs) {
-        /* istanbul ignore next */
-        if (err) {
-          self.log(chalk.red(err));
-          cb(err);
-          return;
-        }
-
-        if (args.options.messages === undefined) {
-          for (let i = 0; i < logs.length; ++i) {
-            self.log(logs[i]);
-          }
-        }
-
-        const uniques = uniqFiles(stdin);
-
-        for (let i = 0; i < stdin.length; ++i) {
-          let maxCounter = 0;
-          let bytes = 0;
-          for (let j = 0; j < stdin[i][0].length; ++j) {
-            const line = String(stdin[i][0][j]);
-            const match = line.match(pattern);
-            const offset = bytes;
-            let result;
-            bytes += line.length + 1;
-            if (match && args.options.invertmatch === undefined) {
-              result = line.replace(pattern, chalk.red('$1'));
-            } else if (match === null && args.options.invertmatch === true) {
-              result = line;
-            }
-            if (args.options.byteoffset && result !== undefined) {
-              result = `${chalk.green(offset)}${chalk.cyan(`:`)}${result}`;
-            }
-            if (args.options.linenumber && result !== undefined) {
-              result = `${chalk.green(j + 1)}${chalk.cyan(`:`)}${result}`;
-            }
-            if ((uniques.length > 1 || args.options.withfilename) && result !== undefined && args.options.filename === undefined) {
-              result = `${chalk.magenta(stdin[i][1] || 'stdin')}${chalk.cyan(`:`)}${result}`;
-            }
-            if (result !== undefined) {
-              maxCounter++;
-              if (args.options.maxcount && maxCounter > args.options.maxcount) {
-                continue;
-              }
-              if (args.options.silent === undefined && args.options.quiet === undefined) {
-                self.log(result);
-              }
-            }
-          }
-        }
-        cb();
-      });
+      grep.exec.call(this, args, args.options, cb);
     });
 };
 
@@ -110,7 +121,7 @@ function uniqFiles(stdin) {
 
 function fetch(files, stdin, options, cb) {
   files = files || [];
-  stdin = (stdin !== undefined) ? [stdin] : [];
+  stdin = (stdin === undefined) ? [] : [stdin];
   const logs = [];
   expand(files, function (err, f) {
     /* istanbul ignore next */
@@ -130,7 +141,7 @@ function fetch(files, stdin, options, cb) {
         if (stat.isDirectory()) {
           logs.push(`grep: ${files[i]}: Is a directory`);
           files[i] = undefined;
-        } else if ((options.include !== undefined && matches(parts.base, options.include)) || options.include === undefined) {
+        } else if (options.include !== undefined && matches(parts.base, options.include) || options.include === undefined) {
           files[i] = [String(fs.readFileSync(path.normalize(files[i]), 'utf8')).split('\n'), files[i]];
         } else {
           files[i] = undefined;
@@ -145,7 +156,7 @@ function fetch(files, stdin, options, cb) {
       stdin[i] = String(stdin[i]).split('\n');
     }
 
-    const agg = (files.length < 1) ? [stdin] : files;
+    const agg = files.length < 1 ? [stdin] : files;
     const final = [];
 
     for (let i = 0; i < agg.length; ++i) {
@@ -163,12 +174,12 @@ function expand(list, cb) {
   let done = 0;
   let files = [];
   let back = false;
-  const handler = function (err) {
+  const handler = function handler(err) {
     done++;
     if (done >= total && !back) {
       back = true;
       cb(undefined, files);
-    /* istanbul ignore next */
+      /* istanbul ignore next */
     } else if (err && !back) {
       back = true;
       cb(err, []);
