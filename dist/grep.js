@@ -6,25 +6,24 @@ var glob = require('glob');
 
 var chalk = undefined;
 
-module.exports = function (vorpal) {
-  chalk = vorpal.chalk;
+var grep = {
 
-  vorpal.command('grep <pattern> [files...]', 'Grep (POSIX) implementation.').option('-i, --ignore-case', 'ignore case distinctions').option('-w, --word-regexp', 'force pattern to match only whole words').option('-s, --no-messages', 'suppress error messages').option('-v, --invert-match', 'select non-matching lines').option('-m, --max-count [num]', 'stop after num matches').option('-b, --byte-offset', 'print the byte offset with output lines').option('-n, --line-number', 'print the line number with output lines').option('-H, --with-filename', 'print the file name for each match').option('-h, --no-filename', 'suppress the file name prefix on output').option('-q, --quiet', 'suppress all normal output').option('--silent', 'suppress all normal output').option('--include [file_pattern]', 'search only files that match file_pattern').hidden().action(function (args, cb) {
+  exec: function exec(args, options, cb) {
     var self = this;
-    var wholeWords = args.options.wordregexp ? '\\b' : '';
+    var wholeWords = options.wordregexp ? '\\b' : '';
     var regopts = 'g';
-    if (args.options.ignorecase) {
+    if (options.ignorecase) {
       regopts += 'i';
     }
     var pattern = new RegExp('(' + wholeWords + args.pattern + wholeWords + ')', regopts);
 
-    if (args.options.maxcount && isNaN(args.options.maxcount)) {
+    if (options.maxcount && isNaN(options.maxcount)) {
       self.log('grep: invalid max count');
       cb();
       return;
     }
 
-    fetch(args.files, args.stdin, args.options, function (err, stdin, logs) {
+    fetch(args.files, args.stdin, options, function (err, stdin, logs) {
       /* istanbul ignore next */
       if (err) {
         self.log(chalk.red(err));
@@ -32,7 +31,7 @@ module.exports = function (vorpal) {
         return;
       }
 
-      if (args.options.messages === undefined) {
+      if (options.messages === undefined) {
         for (var i = 0; i < logs.length; ++i) {
           self.log(logs[i]);
         }
@@ -49,26 +48,26 @@ module.exports = function (vorpal) {
           var offset = bytes;
           var result = undefined;
           bytes += line.length + 1;
-          if (match && args.options.invertmatch === undefined) {
+          if (match && options.invertmatch === undefined) {
             result = line.replace(pattern, chalk.red('$1'));
-          } else if (match === null && args.options.invertmatch === true) {
+          } else if (match === null && options.invertmatch === true) {
             result = line;
           }
-          if (args.options.byteoffset && result !== undefined) {
+          if (options.byteoffset && result !== undefined) {
             result = '' + chalk.green(offset) + chalk.cyan(':') + result;
           }
-          if (args.options.linenumber && result !== undefined) {
+          if (options.linenumber && result !== undefined) {
             result = '' + chalk.green(j + 1) + chalk.cyan(':') + result;
           }
-          if ((uniques.length > 1 || args.options.withfilename) && result !== undefined && args.options.filename === undefined) {
-            result = '' + chalk.magenta(stdin[i][1] || 'stdin') + chalk.cyan(':') + result;
+          if ((uniques.length > 1 || options.withfilename) && result !== undefined && options.filename === undefined) {
+            result = '' + chalk.magenta(stdin[i][1] || 'stdin') + (chalk.cyan(':') + result);
           }
           if (result !== undefined) {
             maxCounter++;
-            if (args.options.maxcount && maxCounter > args.options.maxcount) {
+            if (options.maxcount && maxCounter > options.maxcount) {
               continue;
             }
-            if (args.options.silent === undefined && args.options.quiet === undefined) {
+            if (options.silent === undefined && options.quiet === undefined) {
               self.log(result);
             }
           }
@@ -76,6 +75,18 @@ module.exports = function (vorpal) {
       }
       cb();
     });
+  }
+};
+
+module.exports = function (vorpal) {
+  if (vorpal === undefined) {
+    return grep;
+  }
+  vorpal.api = vorpal.api || {};
+  vorpal.api.grep = grep;
+  chalk = vorpal.chalk;
+  vorpal.command('grep <pattern> [files...]', 'Grep (POSIX) implementation.').option('-i, --ignore-case', 'ignore case distinctions').option('-w, --word-regexp', 'force pattern to match only whole words').option('-s, --no-messages', 'suppress error messages').option('-v, --invert-match', 'select non-matching lines').option('-m, --max-count [num]', 'stop after num matches').option('-b, --byte-offset', 'print the byte offset with output lines').option('-n, --line-number', 'print the line number with output lines').option('-H, --with-filename', 'print the file name for each match').option('-h, --no-filename', 'suppress the file name prefix on output').option('-q, --quiet', 'suppress all normal output').option('--silent', 'suppress all normal output').option('--include [file_pattern]', 'search only files that match file_pattern').hidden().action(function (args, cb) {
+    grep.exec.call(this, args, args.options, cb);
   });
 };
 
@@ -95,7 +106,7 @@ function uniqFiles(stdin) {
 
 function fetch(files, stdin, options, cb) {
   files = files || [];
-  stdin = stdin !== undefined ? [stdin] : [];
+  stdin = stdin === undefined ? [] : [stdin];
   var logs = [];
   expand(files, function (err, f) {
     /* istanbul ignore next */
