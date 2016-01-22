@@ -1,6 +1,6 @@
 {
   "name": "vorpal-grep",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Grep implementation for Vorpal.js",
   "main": "./dist/grep.js",
   "scripts": {
