@@ -10,6 +10,10 @@ const grep = {
 
   exec(args, options, cb) {
     const self = this;
+    cb = cb || function () {};
+    args = args || {
+      stdin: []
+    };
     const wholeWords = options.wordregexp ? '\\b' : '';
     let regopts = 'g';
     if (options.ignorecase) {
