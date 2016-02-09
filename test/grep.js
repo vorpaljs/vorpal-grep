@@ -39,6 +39,12 @@ describe('vorpal-grep', function () {
     grep.should.be.type('function');
   });
 
+  it('should return the raw command when Vorpal is not passed in.', function () {
+    var fn = grep();
+    fn.should.be.type('object');
+    fn.exec.should.be.type('function');
+  });
+
   it('should import into Vorpal', function () {
     (function () {
       vorpal.use(grep);
@@ -70,6 +76,13 @@ describe('vorpal-grep', function () {
   it('should color matches with red', function (done) {
     vorpal.exec('grep cats ./test/fixtures/a.txt', function (err, data) {
       stdout().should.containEql('\u001b[31mcats\u001b[39m');
+      done();
+    });
+  });
+
+  it('should just return when there\'s no input', function (done) {
+    vorpal.exec('grep foo', function (err, data) {
+      stdout().should.equal('');
       done();
     });
   });

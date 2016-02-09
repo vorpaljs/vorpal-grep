@@ -46,6 +46,9 @@ var grep = {
       for (var i = 0; i < stdin.length; ++i) {
         var maxCounter = 0;
         var bytes = 0;
+        if (stdin[i][0] === undefined) {
+          continue;
+        }
         for (var j = 0; j < stdin[i][0].length; ++j) {
           var line = String(stdin[i][0][j]);
           var match = line.match(pattern);

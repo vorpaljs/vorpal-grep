@@ -46,6 +46,9 @@ const grep = {
       for (let i = 0; i < stdin.length; ++i) {
         let maxCounter = 0;
         let bytes = 0;
+        if (stdin[i][0] === undefined) {
+          continue;
+        }
         for (let j = 0; j < stdin[i][0].length; ++j) {
           const line = String(stdin[i][0][j]);
           const match = line.match(pattern);
