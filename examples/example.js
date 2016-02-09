@@ -9,10 +9,4 @@ vorpal
   .use(grep)
   .show();
 
-vorpal.exec('grep cats ./test/fixtures/a.txt').then(function () {
-  return vorpal.exec('grep cats ./fixturesandsoon**');
-}).then(function () {
-  return vorpal.exec('grep "14" ./test/fixtures/*.* --include \'*.md\' ');
-}).catch(function (e) {
-  vorpal.log(e);
-});
+vorpal.exec('grep { ./test ./src -r');

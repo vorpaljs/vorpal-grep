@@ -151,6 +151,21 @@ describe('vorpal-grep', function () {
     });
   });
 
+  it('should recurse with the -r flag', function (done) {
+    vorpal.exec('grep cats ./test -r', function (err, data) {
+      var fix1 = './test/fixtures/a.txt:a:10| cats and socats and more cats';
+      var fix2 = './test/fixtures/b.txt:b:5| can you cats please';
+      var fix3 = './test/fixtures/b.txt:b:13| yeah i said cats';
+      var fix4 = './test/fixtures/c.txt:c:17| what did you cat cat cat and cats';
+      var out = strip(stdout());
+      out.should.containEql(fix1);
+      out.should.containEql(fix2);
+      out.should.containEql(fix3);
+      out.should.containEql(fix4);
+      done();
+    });
+  });
+
   it('should match only whole words with the -w flag', function (done) {
     vorpal.exec('grep words ./test/fixtures/a.txt -w', function (err, data) {
       var fix1 = 'a:13| words and wholewords';

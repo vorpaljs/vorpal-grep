@@ -104,6 +104,7 @@ module.exports = function (vorpal) {
     .option('-H, --with-filename', 'print the file name for each match')
     .option('-h, --no-filename', 'suppress the file name prefix on output')
     .option('-q, --quiet', 'suppress all normal output')
+    .option('-r, --recursive', 'recurse through subdirectories')
     .option('--silent', 'suppress all normal output')
     .option('--include [file_pattern]', 'search only files that match file_pattern')
     .hidden()
@@ -130,7 +131,7 @@ function fetch(files, stdin, options, cb) {
   files = files || [];
   stdin = (stdin === undefined) ? [] : [stdin];
   const logs = [];
-  expand(files, function (err, f) {
+  expand(files, options, function (err, f) {
     /* istanbul ignore next */
     if (err) {
       cb(err);
@@ -176,7 +177,7 @@ function fetch(files, stdin, options, cb) {
   });
 }
 
-function expand(list, cb) {
+function expand(list, options, cb) {
   const total = list.length;
   let done = 0;
   let files = [];
@@ -185,7 +186,23 @@ function expand(list, cb) {
     done++;
     if (done >= total && !back) {
       back = true;
-      cb(undefined, files);
+
+      let fnl = [];
+      for (let i = 0; i < files.length; ++i) {
+        const stat = fs.statSync(files[i]);
+        if (stat.isDirectory()) {
+          if (options.recursive === true) {
+            const res = walkDirRecursive([], files[i]);
+            if (Array.isArray(res)) {
+              fnl = fnl.concat(res);
+            }
+          }
+        } else {
+          fnl.push(files[i]);
+        }
+      }
+
+      cb(undefined, fnl);
       /* istanbul ignore next */
     } else if (err && !back) {
       back = true;
@@ -210,4 +227,26 @@ function expand(list, cb) {
 
 function matches(str, rule) {
   return new RegExp(`^${rule.replace('*', '.*')}$`).test(str);
+}
+
+/**
+ * Recursively walks through and executes
+ * a callback function for each directory found.
+ *
+ * @param {String} currentDirPath
+ * @param {Function} callback
+ * @api private
+ */
+
+function walkDirRecursive(arr, currentDirPath) {
+  fs.readdirSync(currentDirPath).forEach(function (name) {
+    const filePath = path.join(currentDirPath, name);
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      arr = arr.concat(walkDirRecursive(arr, filePath));
+    } else {
+      arr.push(filePath);
+    }
+  });
+  return arr;
 }

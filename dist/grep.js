@@ -92,7 +92,7 @@ module.exports = function (vorpal) {
   vorpal.api = vorpal.api || {};
   vorpal.api.grep = grep;
   chalk = vorpal.chalk;
-  vorpal.command('grep <pattern> [files...]', 'Grep (POSIX) implementation.').option('-i, --ignore-case', 'ignore case distinctions').option('-w, --word-regexp', 'force pattern to match only whole words').option('-s, --no-messages', 'suppress error messages').option('-v, --invert-match', 'select non-matching lines').option('-m, --max-count [num]', 'stop after num matches').option('-b, --byte-offset', 'print the byte offset with output lines').option('-n, --line-number', 'print the line number with output lines').option('-H, --with-filename', 'print the file name for each match').option('-h, --no-filename', 'suppress the file name prefix on output').option('-q, --quiet', 'suppress all normal output').option('--silent', 'suppress all normal output').option('--include [file_pattern]', 'search only files that match file_pattern').hidden().action(function (args, cb) {
+  vorpal.command('grep <pattern> [files...]', 'Grep (POSIX) implementation.').option('-i, --ignore-case', 'ignore case distinctions').option('-w, --word-regexp', 'force pattern to match only whole words').option('-s, --no-messages', 'suppress error messages').option('-v, --invert-match', 'select non-matching lines').option('-m, --max-count [num]', 'stop after num matches').option('-b, --byte-offset', 'print the byte offset with output lines').option('-n, --line-number', 'print the line number with output lines').option('-H, --with-filename', 'print the file name for each match').option('-h, --no-filename', 'suppress the file name prefix on output').option('-q, --quiet', 'suppress all normal output').option('-r, --recursive', 'recurse through subdirectories').option('--silent', 'suppress all normal output').option('--include [file_pattern]', 'search only files that match file_pattern').hidden().action(function (args, cb) {
     grep.exec.call(this, args, args.options, cb);
   });
 };
@@ -115,7 +115,7 @@ function fetch(files, stdin, options, cb) {
   files = files || [];
   stdin = stdin === undefined ? [] : [stdin];
   var logs = [];
-  expand(files, function (err, f) {
+  expand(files, options, function (err, f) {
     /* istanbul ignore next */
     if (err) {
       cb(err);
@@ -161,7 +161,7 @@ function fetch(files, stdin, options, cb) {
   });
 }
 
-function expand(list, cb) {
+function expand(list, options, cb) {
   var total = list.length;
   var done = 0;
   var files = [];
@@ -170,7 +170,23 @@ function expand(list, cb) {
     done++;
     if (done >= total && !back) {
       back = true;
-      cb(undefined, files);
+
+      var fnl = [];
+      for (var i = 0; i < files.length; ++i) {
+        var stat = fs.statSync(files[i]);
+        if (stat.isDirectory()) {
+          if (options.recursive === true) {
+            var res = walkDirRecursive([], files[i]);
+            if (Array.isArray(res)) {
+              fnl = fnl.concat(res);
+            }
+          }
+        } else {
+          fnl.push(files[i]);
+        }
+      }
+
+      cb(undefined, fnl);
       /* istanbul ignore next */
     } else if (err && !back) {
         back = true;
@@ -195,4 +211,26 @@ function expand(list, cb) {
 
 function matches(str, rule) {
   return new RegExp('^' + rule.replace('*', '.*') + '$').test(str);
+}
+
+/**
+ * Recursively walks through and executes
+ * a callback function for each directory found.
+ *
+ * @param {String} currentDirPath
+ * @param {Function} callback
+ * @api private
+ */
+
+function walkDirRecursive(arr, currentDirPath) {
+  fs.readdirSync(currentDirPath).forEach(function (name) {
+    var filePath = path.join(currentDirPath, name);
+    var stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      arr = arr.concat(walkDirRecursive(arr, filePath));
+    } else {
+      arr.push(filePath);
+    }
+  });
+  return arr;
 }
