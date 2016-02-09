@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/vorpaljs/vorpal-grep.svg)](https://travis-ci.org/vorpaljs/vorpal-grep)
 [![Coverage Status](https://coveralls.io/repos/vorpaljs/vorpal-grep/badge.svg?branch=master)](https://coveralls.io/r/vorpaljs/vorpal-grep?branch=master)
-[![XO: Linted](https://img.shields.io/badge/xo-linted-blue.svg)](https://github.com/sindresorhus/xo)
+[![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
 
 A 100% Javascript (ES2015) implementation of the [grep](https://en.wikipedia.org/wiki/Grep) command.
 
