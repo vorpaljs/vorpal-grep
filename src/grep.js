@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
+const fsAutocomplete = require('vorpal-autocomplete-fs');
 
 let chalk;
 
@@ -107,7 +108,7 @@ module.exports = function (vorpal) {
     .option('-r, --recursive', 'recurse through subdirectories')
     .option('--silent', 'suppress all normal output')
     .option('--include [file_pattern]', 'search only files that match file_pattern')
-    .hidden()
+    .autocomplete(fsAutocomplete())
     .action(function (args, cb) {
       grep.exec.call(this, args, args.options, cb);
     });
