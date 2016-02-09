@@ -9,4 +9,4 @@ vorpal
   .use(grep)
   .show();
 
-vorpal.exec('grep { ./test ./src -r');
+vorpal.exec('grep caasdfasdft ./node_modules/istanbul -r');

@@ -190,6 +190,7 @@ function expand(list, options, cb) {
       let fnl = [];
       for (let i = 0; i < files.length; ++i) {
         const stat = fs.statSync(files[i]);
+
         if (stat.isDirectory()) {
           if (options.recursive === true) {
             const res = walkDirRecursive([], files[i]);
@@ -201,7 +202,6 @@ function expand(list, options, cb) {
           fnl.push(files[i]);
         }
       }
-
       cb(undefined, fnl);
       /* istanbul ignore next */
     } else if (err && !back) {
@@ -243,7 +243,7 @@ function walkDirRecursive(arr, currentDirPath) {
     const filePath = path.join(currentDirPath, name);
     const stat = fs.statSync(filePath);
     if (stat.isDirectory()) {
-      arr = arr.concat(walkDirRecursive(arr, filePath));
+      arr = walkDirRecursive(arr, filePath);
     } else {
       arr.push(filePath);
     }
