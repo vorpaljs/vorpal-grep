@@ -15,14 +15,14 @@ const grep = {
     args = args || {
       stdin: []
     };
-    const wholeWords = options.wordregexp ? '\\b' : '';
+    const wholeWords = options['word-regexp'] ? '\\b' : '';
     let regopts = 'g';
-    if (options.ignorecase) {
+    if (options['ignore-case']) {
       regopts += 'i';
     }
     const pattern = new RegExp(`(${wholeWords}${args.pattern}${wholeWords})`, regopts);
 
-    if (options.maxcount && isNaN(options.maxcount)) {
+    if (options['max-count'] && isNaN(options['max-count'])) {
       self.log('grep: invalid max count');
       cb();
       return;
@@ -56,23 +56,23 @@ const grep = {
           const offset = bytes;
           let result;
           bytes += line.length + 1;
-          if (match && options.invertmatch === undefined) {
+          if (match && options['invert-match'] === undefined) {
             result = line.replace(pattern, chalk.red('$1'));
-          } else if (match === null && options.invertmatch === true) {
+          } else if (match === null && options['invert-match'] === true) {
             result = line;
           }
-          if (options.byteoffset && result !== undefined) {
+          if (options['byte-offset'] && result !== undefined) {
             result = `${chalk.green(offset)}${chalk.cyan(':')}${result}`;
           }
-          if (options.linenumber && result !== undefined) {
+          if (options['line-number'] && result !== undefined) {
             result = `${chalk.green(j + 1)}${chalk.cyan(':')}${result}`;
           }
-          if ((uniques.length > 1 || options.withfilename) && result !== undefined && options.filename === undefined) {
+          if ((uniques.length > 1 || options['with-filename']) && result !== undefined && options.filename === undefined) {
             result = `${chalk.magenta(stdin[i][1] || 'stdin')}${chalk.cyan(':') + result}`;
           }
           if (result !== undefined) {
             maxCounter++;
-            if (options.maxcount && maxCounter > options.maxcount) {
+            if (options['max-count'] && maxCounter > options['max-count']) {
               continue;
             }
             if (options.silent === undefined && options.quiet === undefined) {
